@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyMessage } from 'viem';
+import { createPublicClient, http } from 'viem';
+import { base } from 'viem/chains';
 
 // Note: Using Node.js runtime for better viem compatibility with ERC-6492 signatures
 // Edge runtime has limitations with some crypto operations
@@ -72,17 +73,26 @@ export async function POST(req: NextRequest) {
     // For this demo, we skip nonce validation and just verify the signature
     // In production with a database/Redis, you'd validate nonce here
 
-    // Verify signature using viem
+    // Verify signature using viem with public client
     // Base Account uses ERC-6492 for smart wallets, which viem handles automatically
     // The signature may be longer than standard ECDSA signatures
+    // Using publicClient.verifyMessage as recommended by Base docs
     let valid = false;
     try {
       console.log('Attempting signature verification...');
       console.log('Address:', normalizedAddress);
       console.log('Message:', message);
       console.log('Signature (first 100 chars):', normalizedSignature.substring(0, 100));
+      console.log('Full signature length:', normalizedSignature.length - 2); // -2 for 0x
       
-      valid = await verifyMessage({
+      // Create a public client for Base network
+      const publicClient = createPublicClient({
+        chain: base,
+        transport: http(),
+      });
+      
+      // Use publicClient.verifyMessage which handles ERC-6492 automatically
+      valid = await publicClient.verifyMessage({
         address: normalizedAddress,
         message,
         signature: normalizedSignature,
@@ -93,12 +103,14 @@ export async function POST(req: NextRequest) {
       console.error('Signature verification error:', verifyError);
       console.error('Error message:', verifyError.message);
       console.error('Error stack:', verifyError.stack);
+      console.error('Error name:', verifyError.name);
       
       // Return detailed error for debugging
       return NextResponse.json(
         { 
           error: 'Signature verification failed',
-          details: verifyError.message,
+          details: verifyError.message || 'Unknown error',
+          errorName: verifyError.name,
           signatureLength: normalizedSignature.length - 2
         },
         { status: 500 }
