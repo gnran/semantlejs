@@ -53,7 +53,7 @@ export default function HomePage() {
     setStatus('Connecting and signing…');
 
     try {
-      const { accounts } = await provider.request({
+      const result = await provider.request({
         method: 'wallet_connect',
         params: [
           {
@@ -66,9 +66,19 @@ export default function HomePage() {
             }
           }
         ]
-      });
+      }) as {
+        accounts: Array<{
+          address: string;
+          capabilities: {
+            signInWithEthereum: {
+              message: string;
+              signature: string;
+            };
+          };
+        }>;
+      };
 
-      const acct = accounts[0];
+      const acct = result.accounts[0];
       const { address } = acct;
       const { message, signature } = acct.capabilities.signInWithEthereum;
 
