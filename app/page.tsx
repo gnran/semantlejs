@@ -10,6 +10,18 @@ const SignInWithBaseButton = dynamic(
   { ssr: false }
 );
 
+type WalletConnectResponse = {
+  accounts: Array<{
+    address: string;
+    capabilities: {
+      signInWithEthereum: {
+        message: string;
+        signature: string;
+      };
+    };
+  }>;
+};
+
 export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [address, setAddress] = useState<string | null>(null);
@@ -46,7 +58,7 @@ export default function HomePage() {
             }
           }
         }]
-      });
+      }) as WalletConnectResponse;
 
       const accountInfo = resp.accounts[0];
       const { address } = accountInfo;
@@ -89,7 +101,7 @@ export default function HomePage() {
             }
           }
         }]
-      });
+      }) as WalletConnectResponse;
 
       const accountInfo = resp.accounts[0];
       const { address } = accountInfo;
