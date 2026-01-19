@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyMessage } from 'viem';
 
-// Note: In edge runtime, in-memory Sets don't persist between requests
+// Note: Using Node.js runtime for better viem compatibility with ERC-6492 signatures
+// Edge runtime has limitations with some crypto operations
 // For production, use a shared database or Redis for nonce storage
 // For this demo, we validate message format and signature
-export const runtime = 'edge';
+// export const runtime = 'edge'; // Commented out to use Node.js runtime
 
 export async function POST(req: NextRequest) {
   try {
@@ -72,11 +73,37 @@ export async function POST(req: NextRequest) {
     // In production with a database/Redis, you'd validate nonce here
 
     // Verify signature using viem
-    const valid = await verifyMessage({
-      address: normalizedAddress,
-      message,
-      signature: normalizedSignature,
-    });
+    // Base Account uses ERC-6492 for smart wallets, which viem handles automatically
+    // The signature may be longer than standard ECDSA signatures
+    let valid = false;
+    try {
+      console.log('Attempting signature verification...');
+      console.log('Address:', normalizedAddress);
+      console.log('Message:', message);
+      console.log('Signature (first 100 chars):', normalizedSignature.substring(0, 100));
+      
+      valid = await verifyMessage({
+        address: normalizedAddress,
+        message,
+        signature: normalizedSignature,
+      });
+      
+      console.log('Verification result:', valid);
+    } catch (verifyError: any) {
+      console.error('Signature verification error:', verifyError);
+      console.error('Error message:', verifyError.message);
+      console.error('Error stack:', verifyError.stack);
+      
+      // Return detailed error for debugging
+      return NextResponse.json(
+        { 
+          error: 'Signature verification failed',
+          details: verifyError.message,
+          signatureLength: normalizedSignature.length - 2
+        },
+        { status: 500 }
+      );
+    }
 
     if (!valid) {
       return NextResponse.json(
