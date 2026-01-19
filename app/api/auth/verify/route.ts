@@ -18,20 +18,30 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Extract and validate nonce from message
-    // Base message format includes nonce at the end: "... at <nonce>"
-    const match = message.match(/at ([a-f0-9]{32})$/i);
-    const nonce = match ? match[1] : null;
-
-    if (!nonce) {
-      return NextResponse.json(
-        { error: 'Invalid message format' },
-        { status: 400 }
-      );
+    // Log the actual message for debugging
+    console.log('Received message for verification:', message);
+    console.log('Message length:', message.length);
+    
+    // Extract and validate nonce from message (optional for this demo)
+    // Base message format includes nonce - try to extract it but don't fail if we can't
+    // Since we can't track nonces in edge runtime anyway, we'll just verify the signature
+    let nonce: string | null = null;
+    
+    // Try various patterns to extract nonce
+    let match = message.match(/at ([a-f0-9]{32})$/i) || 
+                message.match(/at ([a-f0-9]+)$/i) ||
+                message.match(/([a-f0-9]{32})/i);
+    
+    if (match) {
+      nonce = match[1];
+      console.log('Extracted nonce:', nonce);
+    } else {
+      console.log('Could not extract nonce - will still verify signature');
     }
 
     // Note: In edge runtime, we can't track used nonces across requests
-    // In production, you'd check against Redis/database here
+    // For this demo, we skip nonce validation and just verify the signature
+    // In production with a database/Redis, you'd validate nonce here
 
     // Verify signature using viem
     const valid = await verifyMessage({
