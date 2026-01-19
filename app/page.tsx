@@ -82,8 +82,11 @@ export default function HomePage() {
       const { address } = acct;
       const { message, signature } = acct.capabilities.signInWithEthereum;
 
-      // Log message for debugging
+      // Log message and signature for debugging
       console.log('Message to verify:', message);
+      console.log('Signature:', signature);
+      console.log('Signature length:', signature?.length);
+      console.log('Address:', address);
       console.log('Nonce used:', nonce);
 
       setStatus('Verifying signature on backend…');

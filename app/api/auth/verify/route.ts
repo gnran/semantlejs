@@ -18,9 +18,37 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Log the actual message for debugging
+    // Log the actual message and signature for debugging
     console.log('Received message for verification:', message);
     console.log('Message length:', message.length);
+    console.log('Received signature:', signature);
+    console.log('Signature length:', signature?.length);
+    
+    // Normalize address - ensure it has 0x prefix
+    const normalizedAddress = address.startsWith('0x') 
+      ? address.toLowerCase() as `0x${string}`
+      : (`0x${address}`.toLowerCase() as `0x${string}`);
+    
+    // Normalize signature - ensure it has 0x prefix
+    // Note: Base Account may use ERC-6492 smart wallet signatures which are longer
+    // viem's verifyMessage handles ERC-6492 automatically
+    let normalizedSignature: `0x${string}`;
+    if (!signature) {
+      return NextResponse.json(
+        { error: 'Signature is required' },
+        { status: 400 }
+      );
+    }
+    
+    // Ensure signature has 0x prefix (required by viem)
+    // Don't validate length here - ERC-6492 signatures can be longer than 130 chars
+    if (signature.startsWith('0x') || signature.startsWith('0X')) {
+      normalizedSignature = signature.toLowerCase() as `0x${string}`;
+    } else {
+      normalizedSignature = (`0x${signature}`.toLowerCase() as `0x${string}`);
+    }
+    
+    console.log('Normalized signature length:', normalizedSignature.length - 2); // -2 for 0x prefix
     
     // Extract and validate nonce from message (optional for this demo)
     // Base message format includes nonce - try to extract it but don't fail if we can't
@@ -45,9 +73,9 @@ export async function POST(req: NextRequest) {
 
     // Verify signature using viem
     const valid = await verifyMessage({
-      address: address as `0x${string}`,
+      address: normalizedAddress,
       message,
-      signature: signature as `0x${string}`,
+      signature: normalizedSignature,
     });
 
     if (!valid) {
